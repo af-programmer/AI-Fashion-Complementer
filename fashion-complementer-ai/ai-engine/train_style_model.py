@@ -15,15 +15,13 @@ ssl._create_default_https_context = ssl._create_unverified_context
 BATCH_SIZE = 32
 IMG_SIZE = (224, 224)
 EPOCHS = 10  # מספר מחזורי האימון (ניתן להגדיל בהתאם לצורך ולכמות הדאטה)
-DATASET_DIR = './dataset'
+DATASET_DIR = '../data_split' # עודכן לנתיב התיקייה המאוזנת החדשה
 
 print("--- שלב 1: טעינת הנתונים וביצוע אוגמנטציה (Data Augmentation) ---")
 
-# שימוש ב-ImageDataGenerator כדי לייצר גיוון זמני בתמונות (סיבוב, מתיחה) למניעת Overfitting
-# וכמו כן חלוקה אוטומטית של 80% לאימון ו-20% לוולידציה (בדיקה)
-datagen = ImageDataGenerator(
+# מחולל נתונים עבור קבוצת האימון - כולל גיוון זמני בתמונות (סיבוב, מתיחה) למניעת Overfitting
+train_datagen = ImageDataGenerator(
     preprocessing_function=preprocess_input,
-    validation_split=0.2,  # 20% מהדאטה ישמר לבדיקת ביצועים
     rotation_range=20,
     zoom_range=0.15,
     width_shift_range=0.2,
@@ -31,23 +29,26 @@ datagen = ImageDataGenerator(
     horizontal_flip=True
 )
 
-# מחולל נתונים עבור קבוצת האימון
-train_generator = datagen.flow_from_directory(
-    DATASET_DIR,
+# מחולל נתונים עבור קבוצת הוולידציה - ללא אוגמנטציה (בדיקה נקייה של המודל)
+val_datagen = ImageDataGenerator(
+    preprocessing_function=preprocess_input
+)
+
+# מחולל נתונים עבור קבוצת האימון מתוך תת-התיקייה train
+train_generator = train_datagen.flow_from_directory(
+    os.path.join(DATASET_DIR, 'train'),
     target_size=IMG_SIZE,
     batch_size=BATCH_SIZE,
     class_mode='categorical',
-    subset='training',
     shuffle=True
 )
 
-# מחולל נתונים עבור קבוצת הוולידציה
-validation_generator = datagen.flow_from_directory(
-    DATASET_DIR,
+# מחולל נתונים עבור קבוצת הוולידציה מתוך תת-התיקייה val
+validation_generator = val_datagen.flow_from_directory(
+    os.path.join(DATASET_DIR, 'val'),
     target_size=IMG_SIZE,
     batch_size=BATCH_SIZE,
     class_mode='categorical',
-    subset='validation',
     shuffle=False
 )
 
